@@ -152,6 +152,7 @@ class ALiYunPan(object):
                         status = sign_in_logs_dict.get('status', '')
                         day = sign_in_logs_dict.get('day', '')
                         reward = sign_in_logs_dict.get('reward', {})
+                        isReward = sign_in_logs_dict.get('isReward', 'false')
                         if status == "":
                             logger.info(
                                 f"sign_in_logs_dict={sign_in_logs_dict}")
@@ -160,6 +161,8 @@ class ALiYunPan(object):
                             # logger.warning(f"第{day}天未打卡")
                             not_sign_in_days_lists.append(day)
                         elif status == "normal":
+                            if not isReward:  # 签到但未领取奖励
+                                self.get_reward(day)
                             if reward:
                                 name = reward.get('name', '')
                                 description = reward.get('description', '')
@@ -188,6 +191,25 @@ class ALiYunPan(object):
 
         except:
             logger.error(f"签到异常={traceback.format_exc()}")
+
+    def get_reward(self, day):
+        try:
+            token = self.access_token
+            url = 'https://member.aliyundrive.com/v1/activity/sign_in_reward'
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": token,
+                "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 15_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 D/C501C6D2-FAF6-4DA8-B65B-7B8B392901EB"
+            }
+            body = {
+                'signInDay': day
+            }
+
+            resp = requests.post(url, json=body, headers=headers)
+            resp_text = resp.text
+            logger.debug(f"resp_json={resp_text}")
+        except:
+            logger.error(f"获取签到奖励异常={traceback.format_exc()}")
 
 
 def main():
