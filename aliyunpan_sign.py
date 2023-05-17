@@ -151,7 +151,6 @@ class ALiYunPan(object):
 
                         status = sign_in_logs_dict.get('status', '')
                         day = sign_in_logs_dict.get('day', '')
-                        reward = sign_in_logs_dict.get('reward', {})
                         isReward = sign_in_logs_dict.get('isReward', 'false')
                         if status == "":
                             logger.info(
@@ -161,8 +160,12 @@ class ALiYunPan(object):
                             # logger.warning(f"第{day}天未打卡")
                             not_sign_in_days_lists.append(day)
                         elif status == "normal":
+                            reward = {}
                             if not isReward:  # 签到但未领取奖励
-                                self.get_reward(day)
+                                reward = self.get_reward(day)
+                            else:
+                                reward = sign_in_logs_dict.get('reward', {})
+                            # 获取签到奖励内容
                             if reward:
                                 name = reward.get('name', '')
                                 description = reward.get('description', '')
@@ -172,13 +175,13 @@ class ALiYunPan(object):
                             today_info = '✅' if day == sign_in_count else '☑'
                             log_info = f"{today_info}打卡第{day}天，获得奖励：**[{name}->{description}]**"
                             logger.info(log_info)
-                            msg = msg + log_info + '\n\n'
+                            msg = log_info + '\n\n' + msg
                             sign_in_days_lists.append(day)
 
                     log_info = f"🔥打卡进度:{sign_in_count}/{len(sign_in_logs_list)}"
                     logger.info(log_info)
 
-                    msg = msg + log_info
+                    msg = log_info + '\n\n' + msg
                     if PUSH_KEY:
                         ServerChan_send(PUSH_KEY, title, msg)
                     if PUSH_PLUS_TOKEN:
@@ -208,8 +211,16 @@ class ALiYunPan(object):
             resp = requests.post(url, json=body, headers=headers)
             resp_text = resp.text
             logger.debug(f"resp_json={resp_text}")
+
+            resp_json = resp.json()
+            result = resp_json.get('result', {})
+            name = result.get('name', '')
+            description = result.get('description', '')
+            return {'name': name, 'description': description}
         except:
             logger.error(f"获取签到奖励异常={traceback.format_exc()}")
+
+        return {'name': 'null', 'description': 'null'}
 
 
 def main():
